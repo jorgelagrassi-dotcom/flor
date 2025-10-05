@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 Relatórios de Vendas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen p-4 sm:p-6 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold text-blue-800 mb-6 flex items-center">
+      📊 Relatórios de Vendas
+    </h1>
+
+    <div id="relatorioRapido" class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h2 class="text-xl font-semibold text-blue-700 mb-4">Resumo por Tipo de Venda</h2>
+      <div id="resumoVendas" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      <p id="totalGeral" class="text-lg font-bold text-blue-800 mt-4"></p>
+    </div>
+
+    <form id="filtroForm" class="bg-white p-6 rounded-lg shadow-md mb-6 flex flex-col sm:flex-row gap-4 items-center">
+      <div class="w-full sm:w-auto">
+        <select id="tipoVendaFiltro" class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todos os tipos</option>
+          <option value="Rota 28">Rota 28</option>
+          <option value="Loja">Loja</option>
+          <option value="Online">Online</option>
+        </select>
+      </div>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Filtrar</button>
+      <a href="index.html">
+        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center">
+          ⬅️ Voltar
+        </button>
+      </a>
+    </form>
+
+    <div class="overflow-x-auto">
+      <table id="relatorioTable" class="w-full bg-white rounded-lg shadow-md">
+        <thead class="bg-blue-100">
+          <tr>
+            <th class="p-3 text-blue-800">Produto</th>
+            <th class="p-3 text-blue-800">Tipo Venda</th>
+            <th class="p-3 text-blue-800">Qtd</th>
+            <th class="p-3 text-blue-800">Unitário</th>
+            <th class="p-3 text-blue-800">Total</th>
+            <th class="p-3 text-blue-800">Pagamento</th>
+            <th class="p-3 text-blue-800">Data</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const filtroForm = document.getElementById('filtroForm');
+    const tableBody = document.querySelector('#relatorioTable tbody');
+    const resumoVendas = document.getElementById('resumoVendas');
+    const totalGeral = document.getElementById('totalGeral');
+    const vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+
+    // Renderizar tabela e relatório rápido inicial
+    renderRelatorio(vendas);
+
+    // Filtrar
+    filtroForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const filtro = document.getElementById('tipoVendaFiltro').value;
+      const vendasFiltradas = filtro ? vendas.filter(v => v.tipoVenda === filtro) : vendas;
+      renderRelatorio(vendasFiltradas);
+    });
+
+    // Renderizar tabela e relatório rápido
+    function renderRelatorio(data) {
+      // Renderizar tabela
+      tableBody.innerHTML = '';
+      data.forEach(venda => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="p-3">${venda.produto}</td>
+          <td class="p-3">${venda.tipoVenda}</td>
+          <td class="p-3">${venda.quantidade}</td>
+          <td class="p-3">${venda.valorUnitario}</td>
+          <td class="p-3">${venda.total}</td>
+          <td class="p-3">${venda.pagamento}</td>
+          <td class="p-3">${venda.data}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      // Calcular totais por tipo de venda
+      const totais = {
+        'Rota 28': 0,
+        'Loja': 0,
+        'Online': 0
+      };
+      data.forEach(venda => {
+        if (totais[venda.tipoVenda] !== undefined) {
+          totais[venda.tipoVenda] += parseFloat(venda.total) || 0;
+        }
+      });
+
+      // Renderizar relatório rápido
+      resumoVendas.innerHTML = `
+        <p class="text-blue-600">Rota 28: R$ ${totais['Rota 28'].toFixed(2)}</p>
+        <p class="text-blue-600">Loja: R$ ${totais['Loja'].toFixed(2)}</p>
+        <p class="text-blue-600">Online: R$ ${totais['Online'].toFixed(2)}</p>
+      `;
+      
+      // Calcular e exibir somatório total
+      const somaTotal = Object.values(totais).reduce((acc, val) => acc + val, 0);
+      totalGeral.textContent = `Total Geral: R$ ${somaTotal.toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>

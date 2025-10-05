@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💙 Controle de Caixa - Flor de Jasmin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen p-4 sm:p-6 md:p-8">
+  <div class="max-w-5xl mx-auto">
+   <center><img src="logo.png" width=15%></center> 
+	<h1 class="text-3xl font-bold text-blue-800 mb-6 flex items-center">CONTROLE DE VENDAS</h1>
+	
+    
+	
+    <a href="relatorio.html">
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mb-6 flex items-center">
+        📊 Ver Relatórios
+      </button>
+    </a>
+
+    <form id="vendaForm" class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-blue-700 font-medium">Produto</label>
+          <input type="text" id="produto" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Tipo de Venda</label>
+          <select id="tipoVenda" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Rota 28">Rota 28</option>
+            <option value="Loja">Loja</option>
+            <option value="Online">Online</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Quantidade</label>
+          <input type="number" id="quantidade" min="1" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Valor Unitário (R$)</label>
+          <input type="number" id="valorUnitario" min="0.01" step="0.01" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Total (R$)</label>
+          <input type="number" id="total" readonly class="w-full p-2 border border-blue-300 rounded-md bg-gray-100">
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Tipo de Pagamento</label>
+          <select id="pagamento" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Cartão">Cartão</option>
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Pix">Pix</option>
+            <option value="Hotel">Hotel</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-blue-700 font-medium">Data da Venda</label>
+          <input type="date" id="dataVenda" required class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+      <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
+        💾 Salvar
+      </button>
+      <button type="button" id="cancelarEdicao" class="mt-4 ml-2 bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 hidden">Cancelar Edição</button>
+    </form>
+
+    <div class="overflow-x-auto">
+      <table id="vendasTable" class="w-full bg-white rounded-lg shadow-md">
+        <thead class="bg-blue-100">
+          <tr>
+            <th class="p-3 text-blue-800">Produto</th>
+            <th class="p-3 text-blue-800">Tipo Venda</th>
+            <th class="p-3 text-blue-800">Qtd</th>
+            <th class="p-3 text-blue-800">Unitário</th>
+            <th class="p-3 text-blue-800">Total</th>
+            <th class="p-3 text-blue-800">Pagamento</th>
+            <th class="p-3 text-blue-800">Data</th>
+            <th class="p-3 text-blue-800">Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('vendaForm');
+    const tableBody = document.querySelector('#vendasTable tbody');
+    const quantidadeInput = document.getElementById('quantidade');
+    const valorUnitarioInput = document.getElementById('valorUnitario');
+    const totalInput = document.getElementById('total');
+    const dataVendaInput = document.getElementById('dataVenda');
+    const produtoInput = document.getElementById('produto');
+    const cancelarEdicaoBtn = document.getElementById('cancelarEdicao');
+
+    // Carregar dados do LocalStorage ao iniciar
+    let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+    let editIndex = -1; // Índice para edição (-1 significa novo registro)
+    renderTable();
+
+    // Definir data atual automaticamente
+    const today = new Date().toISOString().split('T')[0];
+    dataVendaInput.value = today;
+
+    // Forçar produto em maiúsculas em tempo real
+    produtoInput.addEventListener('input', () => {
+      produtoInput.value = produtoInput.value.toUpperCase();
+    });
+
+    // Calcular total automaticamente
+    function calcularTotal() {
+      const qtd = parseFloat(quantidadeInput.value) || 0;
+      const unit = parseFloat(valorUnitarioInput.value) || 0;
+      totalInput.value = (qtd * unit).toFixed(2);
+    }
+    quantidadeInput.addEventListener('input', calcularTotal);
+    valorUnitarioInput.addEventListener('input', calcularTotal);
+
+    // Salvar ou atualizar venda
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const venda = {
+        produto: document.getElementById('produto').value.toUpperCase(), // Garantir maiúsculas
+        tipoVenda: document.getElementById('tipoVenda').value,
+        quantidade: document.getElementById('quantidade').value,
+        valorUnitario: document.getElementById('valorUnitario').value,
+        total: totalInput.value,
+        pagamento: document.getElementById('pagamento').value,
+        data: document.getElementById('dataVenda').value
+      };
+      if (editIndex === -1) {
+        vendas.push(venda); // Novo registro
+      } else {
+        vendas[editIndex] = venda; // Atualizar registro existente
+        editIndex = -1;
+        cancelarEdicaoBtn.classList.add('hidden');
+      }
+      localStorage.setItem('vendas', JSON.stringify(vendas));
+      renderTable();
+      form.reset();
+      totalInput.value = '';
+      dataVendaInput.value = today; // Resetar data para hoje
+    });
+
+    // Renderizar tabela
+    function renderTable() {
+      tableBody.innerHTML = '';
+      vendas.forEach((venda, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="p-3">${venda.produto}</td>
+          <td class="p-3">${venda.tipoVenda}</td>
+          <td class="p-3">${venda.quantidade}</td>
+          <td class="p-3">${venda.valorUnitario}</td>
+          <td class="p-3">${venda.total}</td>
+          <td class="p-3">${venda.pagamento}</td>
+          <td class="p-3">${venda.data}</td>
+          <td class="p-3">
+            <button onclick="editarVenda(${index})" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 mr-2">Editar</button>
+            <button onclick="excluirVenda(${index})" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Excluir</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Editar venda
+    function editarVenda(index) {
+      const venda = vendas[index];
+      document.getElementById('produto').value = venda.produto; // Já está em maiúsculas
+      document.getElementById('tipoVenda').value = venda.tipoVenda;
+      document.getElementById('quantidade').value = venda.quantidade;
+      document.getElementById('valorUnitario').value = venda.valorUnitario;
+      totalInput.value = venda.total;
+      document.getElementById('pagamento').value = venda.pagamento;
+      document.getElementById('dataVenda').value = venda.data;
+      editIndex = index;
+      cancelarEdicaoBtn.classList.remove('hidden');
+    }
+
+    // Cancelar edição
+    cancelarEdicaoBtn.addEventListener('click', () => {
+      form.reset();
+      totalInput.value = '';
+      dataVendaInput.value = today;
+      editIndex = -1;
+      cancelarEdicaoBtn.classList.add('hidden');
+    });
+
+    // Excluir venda
+    function excluirVenda(index) {
+      vendas.splice(index, 1);
+      localStorage.setItem('vendas', JSON.stringify(vendas));
+      renderTable();
+    }
+  </script>
+</body>
+</html>
